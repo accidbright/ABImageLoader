@@ -1,14 +1,47 @@
 //
 //  UIImage+Loading.m
 //
-//  Created by Accid Bright on 03.12.2014.
+//  Created by Ihar Patsousky (Accid Bright) on 03.12.2014.
 //  Copyright (c) 2014 ABCorp. All rights reserved.
 //
 
+#import <objc/runtime.h>
 #import "UIImage+Loading.h"
-#import "UIScreen+DisplayParameters.h"
+
+typedef enum {
+    UIScreenPhone,
+    UIScreenPhoneRetina,
+    UIScreenPhone5,
+    UIScreenPhone6,
+    UIScreenPhone6Plus,
+    UIScreenPad,
+    UIScreenPadRetina
+} UIScreenDevice;
+
+@interface UIScreen (DisplayParameters)
++ (UIScreenDevice)deviceScreen;
++ (BOOL)isRetinaDisplay;
++ (BOOL)deviceScreenPhone6And6Plus;
++ (BOOL)deviceScreenPhone3Inch;
+@end
 
 @implementation UIImage (Loading)
+
++ (void)load {
+    //Exchange XIB loading implementation
+    Method m1 = class_getInstanceMethod(NSClassFromString(@"UIImageNibPlaceholder"), @selector(initWithCoder:));
+    Method m2 = class_getInstanceMethod(self, @selector(initWithCoderAllImages:));
+        method_exchangeImplementations(m1, m2);
+        
+    //Exchange imageNamed: implementation
+    method_exchangeImplementations(class_getClassMethod(self, @selector(imageNamed:)),
+                                       class_getClassMethod(self, @selector(imageWithName:)));
+}
+
+- (id)initWithCoderAllImages:(NSCoder *)aDecoder {
+    NSString *resourceName = [aDecoder decodeObjectForKey:@"UIResourceName"];
+    return [UIImage imageNamed:resourceName];
+}
 
 + (UIImage *)imageWithName:(NSString *)fileName {
     NSString * pathExtension = @"png";
@@ -26,7 +59,7 @@
     
     UIImage * image = nil;
     if (filePath) {
-        image = [UIImage imageNamed:filePath];
+        image = [UIImage imageWithName:filePath];
     }
     return image;
 }
@@ -86,6 +119,48 @@
     }
     NSLog(@"%@ (%@)", [fullPath lastPathComponent], filePath ? @"YES" : @"NO");
     return filePath;
+}
+
+@end
+
+@implementation UIScreen (DisplayParameters)
+
++ (BOOL) isRetinaDisplay {
+    return [[UIScreen mainScreen] respondsToSelector:@selector(scale)] && [UIScreen mainScreen].scale > 1;
+}
+
++ (UIScreenDevice)deviceScreen {
+    if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        if([UIScreen isRetinaDisplay]) {
+            return UIScreenPadRetina;
+        } else {
+            return UIScreenPad;
+        }
+    } else {
+        if([UIScreen isRetinaDisplay]) {
+            CGSize result = [[UIScreen mainScreen] bounds].size;
+            if(result.height == 480) {
+                return UIScreenPhoneRetina;
+            } else if(result.height == 568) {
+                return UIScreenPhone5;
+            } else if (result.height == 667) {
+                return UIScreenPhone6;
+            } else if (result.height == 736) {
+                return UIScreenPhone6Plus;
+            }
+        }
+        return UIScreenPhone;
+    }
+}
+
++ (BOOL)deviceScreenPhone6And6Plus {
+    UIScreenDevice deviceScreen = [UIScreen deviceScreen];
+    return (deviceScreen == UIScreenPhone6 || deviceScreen == UIScreenPhone6Plus);
+}
+
++ (BOOL)deviceScreenPhone3Inch {
+    UIScreenDevice deviceScreen = [UIScreen deviceScreen];
+    return (deviceScreen == UIScreenPhone || deviceScreen == UIScreenPhoneRetina);
 }
 
 @end
