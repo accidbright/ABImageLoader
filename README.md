@@ -2,11 +2,15 @@ ABImageLoader
 =============
 If you faces the problem of loading different images for different devices and different orientations, this can help you.
 
+Category uses swizzling and support two types of image loading:
+
+* Programmatically.
+* From XIB/Storyboard.
+
 Steps to use:
 
 1. Add these categories to your project (for example just drag and drop them to the XCode).
-2. Type `#import "UIImage+Loading.h"`
-3. Use `[UIImage imageWithName:@"ImageName"]` to load image.
+2. Load images as usually with  `[UIImage imageNamed:@"ImageName"]`. Or set them in XIB/Storyboard
 
 
 
