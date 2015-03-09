@@ -16,9 +16,10 @@ Steps to use:
 
 Image names should be in the next format:
 
-**<<n>name><<n>orientation><<n>scale><<n>device>.<<n>extension>**
+**<<n>name><<n>screen_height><<n>orientation><<n>scale><<n>device>.<<n>extension>**
 
 * **<<n>name>** -- name of the image. This name you should pass to the `imageNamed:` method.
+* **<<n>name><<n>screen_height>** -- screen height if you want to specify different images for different screen heights. Can be *-568h*, *-667h*, *-736h* or missed.
 * **<<n>orientation>** -- can be *-landscape*, *-portrait* or missed.
 * **<<n>scale>** -- image scale factor. Should be written as *@2x*, *@3x*, etc. Don't use *@1x*, just left it empty instead.
 * **<<n>device>** -- can be *~ipad*, *~iphone* or missed.
