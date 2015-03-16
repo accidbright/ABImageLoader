@@ -95,6 +95,9 @@ typedef enum {
     NSString * filePath = nil;
     if ((UIScreenPhone6Plus == [UIScreen deviceScreen])) {
         filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"-736h" withScale:@"@3x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
+        if (!filePath) {
+            filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"" withScale:@"@3x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
+        }
     }
     
     if ((UIScreenPhone6 == [UIScreen deviceScreen]) || (UIScreenPhone6Plus == [UIScreen deviceScreen] && !filePath)) {
