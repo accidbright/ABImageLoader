@@ -60,6 +60,8 @@ typedef enum {
     UIImage * image = nil;
     if (filePath) {
         image = [UIImage imageWithName:filePath];
+    } else {
+        image = [UIImage imageWithName:fileName];
     }
     return image;
 }
