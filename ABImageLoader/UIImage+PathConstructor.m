@@ -1,52 +1,23 @@
 //
-//  UIImage+Loading.m
+//  UIImage+PathConstructor.m
+//  Pods
 //
-//  Created by Ihar Patsousky (Accid Bright) on 03.12.2014.
-//  Copyright (c) 2014 ABCorp. All rights reserved.
+//  Created by Ihar Patsousky on 2/8/17.
+//
 //
 
-#import <objc/runtime.h>
-#import "UIImage+Loading.h"
+#import "UIImage+PathConstructor.h"
+#import "UIScreen+DisplayParameters.h"
 
-typedef enum {
-    UIScreenPhone,
-    UIScreenPhoneRetina,
-    UIScreenPhone5,
-    UIScreenPhone6,
-    UIScreenPhone6Plus,
-    UIScreenPad,
-    UIScreenPadRetina
-} UIScreenDevice;
+@implementation UIImage (PathConstructor)
 
-@interface UIScreen (DisplayParameters)
-+ (UIScreenDevice)deviceScreen;
-+ (BOOL)isRetinaDisplay;
-+ (BOOL)deviceScreenPhone6And6Plus;
-+ (BOOL)deviceScreenPhone3Inch;
-@end
+#pragma mark - Path constructing methods
 
-@implementation UIImage (Loading)
-
-+ (void)load {
-    //Exchange XIB loading implementation
-    Method m1 = class_getInstanceMethod(NSClassFromString(@"UIImageNibPlaceholder"), @selector(initWithCoder:));
-    Method m2 = class_getInstanceMethod(self, @selector(initWithCoderAllImages:));
-        method_exchangeImplementations(m1, m2);
-        
-    //Exchange imageNamed: implementation
-    method_exchangeImplementations(class_getClassMethod(self, @selector(imageNamed:)),
-                                       class_getClassMethod(self, @selector(imageWithName:)));
-}
-
-- (id)initWithCoderAllImages:(NSCoder *)aDecoder {
-    NSString *resourceName = [aDecoder decodeObjectForKey:@"UIResourceName"];
-    return [UIImage imageNamed:resourceName];
-}
-
-+ (UIImage *)imageWithName:(NSString *)fileName {
++ (NSString *)pathToImageWithName:(NSString *)fileName {
     NSString * pathExtension = @"png";
     NSString * filePath = nil;
-    if (fileName.pathExtension.length) {
+    
+    if (fileName.pathExtension.length >= 3) {
         pathExtension = fileName.pathExtension;
         fileName = [fileName stringByDeletingPathExtension];
     }
@@ -57,13 +28,7 @@ typedef enum {
         filePath = [self pathToImageWithName:fileName withOrientation:@"" withExtension:pathExtension];
     }
     
-    UIImage * image = nil;
-    if (filePath) {
-        image = [UIImage imageWithName:filePath];
-    } else {
-        image = [UIImage imageWithName:fileName];
-    }
-    return image;
+    return filePath;
 }
 
 + (NSString *)pathToImageWithName:(NSString *)fileName withOrientation:(NSString *)orientation withExtension:(NSString *)pathExtension {
@@ -84,7 +49,16 @@ typedef enum {
 
 + (NSString *)pathToImageForPadWithName:(NSString *)fileName withOrientation:(NSString *)orientation withDeviceIdentifier:(NSString *)deviceIdentifier withExtension:(NSString *)pathExtension {
     NSString * filePath = nil;
-    if ([UIScreen isRetinaDisplay]) {
+    if ([UIScreen deviceScreenScaled] == UIScreenScaledTriple) {
+        filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"" withScale:@"@3x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
+    }
+    if ((UIScreenPadPro12Inch == [UIScreen deviceScreen])) {
+        filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"-1366h" withScale:@"@2x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
+    }
+    if ((UIScreenPadPro10Inch == [UIScreen deviceScreen]) || (UIScreenPadPro12Inch == [UIScreen deviceScreen] && !filePath)) {
+        filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"-1112h" withScale:@"@2x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
+    }
+    if (!filePath && [UIScreen isRetinaDisplay]) {
         filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"" withScale:@"@2x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
     }
     if (!filePath) {
@@ -95,7 +69,11 @@ typedef enum {
 
 + (NSString *)pathToImageForPhoneWithName:(NSString *)fileName withOrientation:(NSString *)orientation withDeviceIdentifier:(NSString *)deviceIdentifier withExtension:(NSString *)pathExtension {
     NSString * filePath = nil;
-    if ((UIScreenPhone6Plus == [UIScreen deviceScreen])) {
+    if ((UIScreenPhoneX == [UIScreen deviceScreen])) {
+        filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"-812h" withScale:@"@3x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
+    }
+    
+    if ((UIScreenPhone6Plus == [UIScreen deviceScreen]) || (UIScreenPhoneX == [UIScreen deviceScreen] && !filePath)) {
         filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"-736h" withScale:@"@3x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
         if (!filePath) {
             filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"" withScale:@"@3x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
@@ -109,63 +87,33 @@ typedef enum {
     if ((UIScreenPhone5 == [UIScreen deviceScreen]) || ([UIScreen deviceScreenPhone6And6Plus] && !filePath)) {
         filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"-568h" withScale:@"@2x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
     }
+    if (!filePath && [UIScreen isRetinaDisplay]) {
+        filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"" withScale:@"@2x" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
+    }
     if (!filePath) {
-        filePath = [self pathToImageForPadWithName:fileName withOrientation:orientation withDeviceIdentifier:deviceIdentifier withExtension:pathExtension];
+        filePath = [UIImage pathToImageWithName:fileName withOrientation:orientation withScreenHeight:@"" withScale:@"" withDeviceIdentifier:deviceIdentifier withPathExtension:pathExtension];
     }
     return filePath;
 }
 
 + (NSString *)pathToImageWithName:(NSString *)fileName withOrientation:(NSString *)orientation withScreenHeight:(NSString *)screenHeight withScale:(NSString *)scale withDeviceIdentifier:(NSString *)deviceIdentifier withPathExtension:(NSString *)pathExtention {
     NSString * bundlePath = [[NSBundle mainBundle] bundlePath];
-    NSString * fullPath = [NSString stringWithFormat:@"%@/%@%@%@%@%@.%@", bundlePath, fileName, orientation, screenHeight, scale, deviceIdentifier, pathExtention];
-    NSString * filePath = nil;
-    if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath]) {
-        filePath = [fullPath lastPathComponent];
+    NSString * fullFileName = [NSString stringWithFormat:@"%@%@%@%@%@.%@", fileName, orientation, screenHeight, scale, deviceIdentifier, pathExtention];
+    NSString * fullPath = [bundlePath stringByAppendingPathComponent:fullFileName];
+    NSString * language = [[[NSBundle mainBundle] preferredLocalizations] objectAtIndex:0];
+    
+    BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:fullPath];
+    // Try to load file from bundle. If it isn't there, then try to find it in locale folder
+    if (!fileExists) {
+        fullPath = [NSString stringWithFormat:@"%@/%@.lproj/%@", bundlePath, language, fullFileName];
+        fileExists = [[NSFileManager defaultManager] fileExistsAtPath:fullPath];
     }
-    NSLog(@"%@ (%@)", [fullPath lastPathComponent], filePath ? @"YES" : @"NO");
-    return filePath;
-}
-
-@end
-
-@implementation UIScreen (DisplayParameters)
-
-+ (BOOL) isRetinaDisplay {
-    return [[UIScreen mainScreen] respondsToSelector:@selector(scale)] && [UIScreen mainScreen].scale > 1;
-}
-
-+ (UIScreenDevice)deviceScreen {
-    if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-        if([UIScreen isRetinaDisplay]) {
-            return UIScreenPadRetina;
-        } else {
-            return UIScreenPad;
-        }
-    } else {
-        if([UIScreen isRetinaDisplay]) {
-            CGSize result = [[UIScreen mainScreen] bounds].size;
-            if(result.height == 480) {
-                return UIScreenPhoneRetina;
-            } else if(result.height == 568) {
-                return UIScreenPhone5;
-            } else if (result.height == 667) {
-                return UIScreenPhone6;
-            } else if (result.height == 736) {
-                return UIScreenPhone6Plus;
-            }
-        }
-        return UIScreenPhone;
+    // Try to find it in Base localization folder
+    if (!fileExists) {
+        fullPath = [NSString stringWithFormat:@"%@/Base.lproj/%@", bundlePath, fullFileName];
+        fileExists = [[NSFileManager defaultManager] fileExistsAtPath:fullPath];
     }
-}
-
-+ (BOOL)deviceScreenPhone6And6Plus {
-    UIScreenDevice deviceScreen = [UIScreen deviceScreen];
-    return (deviceScreen == UIScreenPhone6 || deviceScreen == UIScreenPhone6Plus);
-}
-
-+ (BOOL)deviceScreenPhone3Inch {
-    UIScreenDevice deviceScreen = [UIScreen deviceScreen];
-    return (deviceScreen == UIScreenPhone || deviceScreen == UIScreenPhoneRetina);
+    return fileExists ? fullPath : nil;
 }
 
 @end
