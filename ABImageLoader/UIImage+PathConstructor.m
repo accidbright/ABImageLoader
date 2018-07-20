@@ -22,13 +22,25 @@
         fileName = [fileName stringByDeletingPathExtension];
     }
     
-    NSString * orientation = UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]) ? @"-portrait" : @"-landscape";
+    NSString * orientation = [self currentOrientationSuffix];
     filePath = [self pathToImageWithName:fileName withOrientation:orientation withExtension:pathExtension];
     if (!filePath) {
         filePath = [self pathToImageWithName:fileName withOrientation:@"" withExtension:pathExtension];
     }
     
     return filePath;
+}
+
++ (NSString *)currentOrientationSuffix {
+    __block BOOL isPortrait;
+    if ([NSThread isMainThread]) {
+        isPortrait = UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]);
+    } else {
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            isPortrait = UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]);
+        });
+    }
+    return isPortrait ? @"-portrait" : @"-landscape";
 }
 
 + (NSString *)pathToImageWithName:(NSString *)fileName withOrientation:(NSString *)orientation withExtension:(NSString *)pathExtension {
